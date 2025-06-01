@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+pydantic
+requests
+beautifulsoup4
+python-jose[cryptography]
+python-multipart
+passlib[bcrypt]
+python-decoupleexit
