@@ -5,5 +5,5 @@ requests
 beautifulsoup4
 python-jose[cryptography]
 python-multipart
-passlib[bcrypt]
-python-decoupleexit
+python-decouple==3.8
+gunicorn 
