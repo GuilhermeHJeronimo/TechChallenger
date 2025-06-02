@@ -8,3 +8,4 @@ python-multipart
 python-decouple==3.8
 gunicorn
 SQLAlchemy==2.0.31
+psycopg2-binary
