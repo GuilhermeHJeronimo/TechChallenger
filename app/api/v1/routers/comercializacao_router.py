@@ -1,50 +1,19 @@
 from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Optional
-
-from app.schemas.comercializacao_schemas import (
-    ComercializacaoResponse,
-    ComercializacaoItemData,
-    ComercializacaoScrapedItem
-)
+from sqlalchemy.orm import Session
+from app.schemas.comercializacao_schemas import ComercializacaoResponse, ComercializacaoItemData
 from app.services.embrapa_scraper import fetch_comercializacao_data
 from app.services.auth_service import get_current_user
 from app.models.user import User as UserModel
+from app.db.session import get_db
 
 router = APIRouter()
-
-def _convert_comercializacao_scraped_to_item_data(
-    scraped_items: List[ComercializacaoScrapedItem],
-    ano: int
-) -> List[ComercializacaoItemData]:
-    processed_items: List[ComercializacaoItemData] = []
-    for scraped_item in scraped_items:
-        quantidade_litros: Optional[float] = None
-        try:
-            if scraped_item.quantidade_str == "-":
-                quantidade_litros = None
-            elif scraped_item.quantidade_str.strip():
-                quantidade_litros = float(scraped_item.quantidade_str.replace(',', '.'))
-            else:
-                quantidade_litros = None
-        except ValueError:
-            print(f"ROUTER WARNING (Comercialização): Não foi possível converter quantidade '{scraped_item.quantidade_str}' para float para o produto '{scraped_item.produto}'. Será None.")
-            quantidade_litros = None
-        
-        processed_items.append(
-            ComercializacaoItemData(
-                produto=scraped_item.produto,
-                sub_produto=scraped_item.sub_produto,
-                quantidade_litros=quantidade_litros,
-                ano=ano
-            )
-        )
-    return processed_items
 
 @router.get(
     "/",
     response_model=ComercializacaoResponse,
     summary="Consulta dados de comercialização por ano (Requer Autenticação).",
-    description="Retorna uma lista de produtos e suas quantidades comercializadas em litros para um determinado ano.",
+    description="Retorna uma lista de produtos e suas quantidades comercializadas em litros para um determinado ano. Os dados são buscados e salvos/atualizados no banco.",
     tags=["Comercialização"]
 )
 async def get_comercializacao_por_ano(
@@ -54,24 +23,20 @@ async def get_comercializacao_por_ano(
         le=2023,
         description="Ano para consulta dos dados de comercialização (entre 1970 e 2023)."
     ),
+    db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
 ):
     print(f"ROUTER (Comercialização): Usuário '{current_user.username}' acessando dados para o ano: {ano}")
     try:
-        scraped_items: List[ComercializacaoScrapedItem] = await fetch_comercializacao_data(year=ano)
-        print(f"ROUTER: Scraper (Comercialização) retornou {len(scraped_items)} itens raspados.")
+        dados_api: List[ComercializacaoItemData] = await fetch_comercializacao_data(db=db, year=ano)
+        print(f"ROUTER: Serviço scraper/DB (Comercialização) retornou {len(dados_api)} itens processados.")
 
-        if not scraped_items:
+        if not dados_api:
             return ComercializacaoResponse(
                 ano_referencia=ano,
                 dados=[],
                 total_geral_litros=0.0
             )
-
-        dados_api: List[ComercializacaoItemData] = _convert_comercializacao_scraped_to_item_data(
-            scraped_items, ano
-        )
-        print(f"ROUTER: {len(dados_api)} itens de Comercialização processados para a API.")
         
         total_litros: float = 0.0
         for item_data in dados_api:
@@ -86,7 +51,8 @@ async def get_comercializacao_por_ano(
             total_geral_litros=round(total_litros, 2)
         )
     except Exception as e:
-        print(f"ROUTER ERROR (Comercialização): Ocorreu um erro inesperado: {str(e)}")
+        import traceback
+        print(f"ROUTER ERROR (Comercialização): Ocorreu um erro inesperado: {str(e)}\n{traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
             detail=f"Erro interno ao processar os dados de comercialização. Detalhe: {str(e)}"
