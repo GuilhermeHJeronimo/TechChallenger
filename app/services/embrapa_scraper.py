@@ -6,7 +6,6 @@ from app.schemas.processamento_schemas import ProcessamentoScrapedItem
 from app.schemas.comercializacao_schemas import ComercializacaoScrapedItem
 from app.schemas.importacao_schemas import ImportacaoScrapedItem
 from app.schemas.exportacao_schemas import ExportacaoScrapedItem
-
 from app.core.config import EMBRAPA_INDEX_PHP_URL, EMBRAPA_REQUEST_TIMEOUT
 
 DEFAULT_HEADERS = {

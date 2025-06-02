@@ -5,7 +5,7 @@ from app.api.v1.routers import processamento_router
 from app.api.v1.routers import comercializacao_router
 from app.api.v1.routers import importacao_router
 from app.api.v1.routers import exportacao_router
-
+from app.api.v1.routers import auth_router
 description = """
 API para consulta de dados de Vitivinicultura da Embrapa. 🍇
 
@@ -16,7 +16,7 @@ API para consulta de dados de Vitivinicultura da Embrapa. 🍇
 * Importação (Vinhos de Mesa, Espumantes, Uvas Frescas, Uvas Passas, Suco de Uva)
 * Exportação (Vinhos de Mesa, Espumantes, Uvas Frescas, Suco de Uva)
 
-Futuramente, esta API alimentará uma base de dados para modelos de Machine Learning.
+Utilize o endpoint `/api/v1/auth/token` para obter um token de acesso.
 """
 
 app = FastAPI(
@@ -55,7 +55,6 @@ app = FastAPI(
     ]
 )
 
-# Configuração do CORS
 origins = [
     "http://localhost",
     "http://localhost:3000",
@@ -70,6 +69,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router.router, prefix="/api/v1/auth", tags=["Autenticação"])
 app.include_router(producao_router.router, prefix="/api/v1/producao", tags=["Produção"])
 app.include_router(processamento_router.router, prefix="/api/v1/processamento", tags=["Processamento"])
 app.include_router(comercializacao_router.router, prefix="/api/v1/comercializacao", tags=["Comercialização"])

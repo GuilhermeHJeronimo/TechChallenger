@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Optional
 
 from app.schemas.exportacao_schemas import (
@@ -7,6 +7,7 @@ from app.schemas.exportacao_schemas import (
     ExportacaoScrapedItem
 )
 from app.services.embrapa_scraper import fetch_exportacao_data
+from app.services.auth_service import get_current_user, UserInDB
 
 router = APIRouter()
 
@@ -22,7 +23,6 @@ def _convert_exportacao_scraped_to_item_data(
     ano: int,
     tipo_exportacao_key: str
 ) -> List[ExportacaoItemData]:
-
     processed_items: List[ExportacaoItemData] = []
     for scraped_item in scraped_items:
         quantidade_kg: Optional[float] = None
@@ -60,14 +60,13 @@ def _convert_exportacao_scraped_to_item_data(
         )
     return processed_items
 
-async def _get_exportacao_data_for_endpoint(ano: int, tipo_exportacao_path: str):
-
+async def _get_exportacao_data_for_endpoint(ano: int, tipo_exportacao_path: str, current_user_username: str):
     tipo_exportacao_key = TIPO_EXPORTACAO_ENDPOINT_MAP.get(tipo_exportacao_path)
     if not tipo_exportacao_key:
         raise HTTPException(status_code=500, detail="Configuração interna inválida para tipo de exportação.")
 
+    print(f"ROUTER (Exportação): Usuário '{current_user_username}' acessando tipo '{tipo_exportacao_key}', ano: {ano}")
     try:
-        print(f"ROUTER (Exportação): Req para tipo '{tipo_exportacao_key}', ano: {ano}")
         scraped_items: List[ExportacaoScrapedItem] = await fetch_exportacao_data(
             year=ano,
             tipo_exportacao_key=tipo_exportacao_key
@@ -115,43 +114,47 @@ async def _get_exportacao_data_for_endpoint(ano: int, tipo_exportacao_path: str)
 @router.get(
     "/vinhos-mesa/",
     response_model=ExportacaoResponse,
-    summary="Dados de exportação de Vinhos de Mesa por ano.",
+    summary="Dados de exportação de Vinhos de Mesa por ano (Requer Autenticação).",
     tags=["Exportação"]
 )
 async def get_exportacao_vinhos_mesa(
-    ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)")
+    ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
+    current_user: UserInDB = Depends(get_current_user)
 ):
-    return await _get_exportacao_data_for_endpoint(ano, "vinhos-mesa")
+    return await _get_exportacao_data_for_endpoint(ano, "vinhos-mesa", current_user.username)
 
 @router.get(
     "/espumantes/",
     response_model=ExportacaoResponse,
-    summary="Dados de exportação de Espumantes por ano.",
+    summary="Dados de exportação de Espumantes por ano (Requer Autenticação).",
     tags=["Exportação"]
 )
 async def get_exportacao_espumantes(
-    ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)")
+    ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
+    current_user: UserInDB = Depends(get_current_user)
 ):
-    return await _get_exportacao_data_for_endpoint(ano, "espumantes")
+    return await _get_exportacao_data_for_endpoint(ano, "espumantes", current_user.username)
 
 @router.get(
     "/uvas-frescas/",
     response_model=ExportacaoResponse,
-    summary="Dados de exportação de Uvas Frescas por ano.",
+    summary="Dados de exportação de Uvas Frescas por ano (Requer Autenticação).",
     tags=["Exportação"]
 )
 async def get_exportacao_uvas_frescas(
-    ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)")
+    ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
+    current_user: UserInDB = Depends(get_current_user)
 ):
-    return await _get_exportacao_data_for_endpoint(ano, "uvas-frescas")
+    return await _get_exportacao_data_for_endpoint(ano, "uvas-frescas", current_user.username)
 
 @router.get(
     "/suco-uva/",
     response_model=ExportacaoResponse,
-    summary="Dados de exportação de Suco de Uva por ano.",
+    summary="Dados de exportação de Suco de Uva por ano (Requer Autenticação).",
     tags=["Exportação"]
 )
 async def get_exportacao_suco_uva(
-    ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)")
+    ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
+    current_user: UserInDB = Depends(get_current_user)
 ):
-    return await _get_exportacao_data_for_endpoint(ano, "suco-uva")
+    return await _get_exportacao_data_for_endpoint(ano, "suco-uva", current_user.username)

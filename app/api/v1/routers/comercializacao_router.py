@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Optional
 
 from app.schemas.comercializacao_schemas import (
@@ -7,6 +7,7 @@ from app.schemas.comercializacao_schemas import (
     ComercializacaoScrapedItem
 )
 from app.services.embrapa_scraper import fetch_comercializacao_data
+from app.services.auth_service import get_current_user, UserInDB
 
 router = APIRouter()
 
@@ -21,7 +22,7 @@ def _convert_comercializacao_scraped_to_item_data(
             if scraped_item.quantidade_str == "-":
                 quantidade_litros = None
             elif scraped_item.quantidade_str.strip():
-                quantidade_litros = float(scraped_item.quantidade_str)
+                quantidade_litros = float(scraped_item.quantidade_str.replace(',', '.'))
             else:
                 quantidade_litros = None
         except ValueError:
@@ -41,7 +42,7 @@ def _convert_comercializacao_scraped_to_item_data(
 @router.get(
     "/",
     response_model=ComercializacaoResponse,
-    summary="Consulta dados de comercialização de produtos vitivinícolas por ano.",
+    summary="Consulta dados de comercialização por ano (Requer Autenticação).",
     description="Retorna uma lista de produtos e suas quantidades comercializadas em litros para um determinado ano.",
     tags=["Comercialização"]
 )
@@ -51,10 +52,11 @@ async def get_comercializacao_por_ano(
         ge=1970,
         le=2023,
         description="Ano para consulta dos dados de comercialização (entre 1970 e 2023)."
-    )
+    ),
+    current_user: UserInDB = Depends(get_current_user)
 ):
+    print(f"ROUTER (Comercialização): Usuário '{current_user.username}' acessando dados para o ano: {ano}")
     try:
-        print(f"ROUTER: Recebida requisição para Comercialização do ano: {ano}")
         scraped_items: List[ComercializacaoScrapedItem] = await fetch_comercializacao_data(year=ano)
         print(f"ROUTER: Scraper (Comercialização) retornou {len(scraped_items)} itens raspados.")
 
