@@ -1,11 +1,28 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.db.base import Base
+from app.db.session import engine
 from app.api.v1.routers import producao_router
 from app.api.v1.routers import processamento_router
 from app.api.v1.routers import comercializacao_router
 from app.api.v1.routers import importacao_router
 from app.api.v1.routers import exportacao_router
 from app.api.v1.routers import auth_router
+
+# --- Lógica para criar tabelas no banco de dados ---
+def create_db_and_tables():
+    print("MAIN: Criando tabelas do banco de dados (se não existirem)...")
+    Base.metadata.create_all(bind=engine)
+    print("MAIN: Tabelas do banco de dados verificadas/criadas.")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    print("MAIN: Iniciando aplicação...")
+    create_db_and_tables()
+    yield
+    print("MAIN: Finalizando aplicação...")
+
 description = """
 API para consulta de dados de Vitivinicultura da Embrapa. 🍇
 
@@ -16,7 +33,6 @@ API para consulta de dados de Vitivinicultura da Embrapa. 🍇
 * Importação (Vinhos de Mesa, Espumantes, Uvas Frescas, Uvas Passas, Suco de Uva)
 * Exportação (Vinhos de Mesa, Espumantes, Uvas Frescas, Suco de Uva)
 
-Utilize o endpoint `/api/v1/auth/token` para obter um token de acesso.
 """
 
 app = FastAPI(
@@ -24,35 +40,8 @@ app = FastAPI(
     description=description,
     version="0.1.0",
     openapi_tags=[
-        {
-            "name": "Autenticação",
-            "description": "Operações de autenticação e gerenciamento de tokens.",
-        },
-        {
-            "name": "Produção",
-            "description": "Endpoints para dados de produção vitivinícola.",
-        },
-        {
-            "name": "Processamento",
-            "description": "Endpoints para dados de processamento de uvas.",
-        },
-        {
-            "name": "Comercialização",
-            "description": "Endpoints para dados de comercialização.",
-        },
-        {
-            "name": "Importação",
-            "description": "Endpoints para dados de importação de produtos vitivinícolas.",
-        },
-        {
-            "name": "Exportação",
-            "description": "Endpoints para dados de exportação de produtos vitivinícolas.",
-        },
-        {
-            "name": "Saúde",
-            "description": "Verificação de status da API.",
-        }
-    ]
+    ],
+    lifespan=lifespan
 )
 
 origins = [
@@ -60,7 +49,6 @@ origins = [
     "http://localhost:3000",
     "http://127.0.0.1",
 ]
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,

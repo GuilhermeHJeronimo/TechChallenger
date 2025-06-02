@@ -12,7 +12,7 @@ ALLOWED_HOSTS_STR: str = config("ALLOWED_HOSTS", default="http://localhost,http:
 
 ALLOWED_HOSTS: List[str] = [host.strip() for host in ALLOWED_HOSTS_STR.split(',')]
 
-SECRET_KEY: str = config("SECRET_KEY", default="seu_super_segredo_aqui_mude_isso_no_env")
+SECRET_KEY: str = config("SECRET_KEY", default="admGuilhermeJeronimo2611")
 
 ALGORITHM: str = config("ALGORITHM", default="HS256")
 
@@ -22,6 +22,8 @@ EMBRAPA_INDEX_PHP_URL: str = f"{EMBRAPA_BASE_URL}/index.php"
 
 EMBRAPA_REQUEST_TIMEOUT: int = config("EMBRAPA_REQUEST_TIMEOUT", default=15, cast=int)
 
+DATABASE_URL: str = config("DATABASE_URL", default="sqlite:///./sql_app.db")
+
 print(f"Carregando configurações para: {PROJECT_NAME}")
-if SECRET_KEY == "seu_super_segredo_aqui_mude_isso_no_env":
+if SECRET_KEY == "admGuilhermeJeronimo2611":
     print("AVISO: SECRET_KEY está usando o valor padrão. Para produção, defina uma SECRET_KEY segura no seu arquivo .env.")

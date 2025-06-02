@@ -7,7 +7,8 @@ from app.schemas.comercializacao_schemas import (
     ComercializacaoScrapedItem
 )
 from app.services.embrapa_scraper import fetch_comercializacao_data
-from app.services.auth_service import get_current_user, UserInDB
+from app.services.auth_service import get_current_user
+from app.models.user import User as UserModel
 
 router = APIRouter()
 
@@ -53,7 +54,7 @@ async def get_comercializacao_por_ano(
         le=2023,
         description="Ano para consulta dos dados de comercialização (entre 1970 e 2023)."
     ),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     print(f"ROUTER (Comercialização): Usuário '{current_user.username}' acessando dados para o ano: {ano}")
     try:

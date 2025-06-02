@@ -2,7 +2,8 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Optional
 from app.schemas.producao_schemas import ProducaoResponse, ProducaoItemData, ProducaoScrapedItem
 from app.services.embrapa_scraper import fetch_producao_data
-from app.services.auth_service import get_current_user, UserInDB
+from app.services.auth_service import get_current_user
+from app.models.user import User as UserModel
 
 router = APIRouter()
 
@@ -46,7 +47,7 @@ async def get_producao_por_ano(
         le=2023,
         description="Ano para consulta dos dados de produção (entre 1970 e 2023)."
     ),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
 
     print(f"ROUTER (Produção): Usuário '{current_user.username}' acessando dados para o ano: {ano}")

@@ -7,7 +7,8 @@ from app.schemas.processamento_schemas import (
     ProcessamentoScrapedItem
 )
 from app.services.embrapa_scraper import fetch_processamento_data
-from app.services.auth_service import get_current_user, UserInDB
+from app.services.auth_service import get_current_user
+from app.models.user import User as UserModel 
 
 router = APIRouter()
 
@@ -93,6 +94,7 @@ async def _get_processamento_data_for_endpoint(ano: int, tipo_processamento_path
             detail=f"Erro interno ao processar dados de processamento ({tipo_processamento_key}). Detalhe: {str(e)}"
         )
 
+
 @router.get(
     "/viniferas/",
     response_model=ProcessamentoResponse,
@@ -101,7 +103,7 @@ async def _get_processamento_data_for_endpoint(ano: int, tipo_processamento_path
 )
 async def get_processamento_viniferas(
     ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     return await _get_processamento_data_for_endpoint(ano, "viniferas", current_user.username)
 
@@ -113,7 +115,7 @@ async def get_processamento_viniferas(
 )
 async def get_processamento_americanas_hibridas(
     ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     return await _get_processamento_data_for_endpoint(ano, "americanas-hibridas", current_user.username)
 
@@ -125,7 +127,7 @@ async def get_processamento_americanas_hibridas(
 )
 async def get_processamento_uvas_mesa(
     ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     return await _get_processamento_data_for_endpoint(ano, "uvas-mesa", current_user.username)
 
@@ -137,6 +139,6 @@ async def get_processamento_uvas_mesa(
 )
 async def get_processamento_sem_classificacao(
     ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     return await _get_processamento_data_for_endpoint(ano, "sem-classificacao", current_user.username)

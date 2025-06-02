@@ -6,4 +6,5 @@ beautifulsoup4
 python-jose[cryptography]
 python-multipart
 python-decouple==3.8
-gunicorn 
+gunicorn
+SQLAlchemy==2.0.31

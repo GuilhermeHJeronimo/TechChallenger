@@ -7,7 +7,8 @@ from app.schemas.exportacao_schemas import (
     ExportacaoScrapedItem
 )
 from app.services.embrapa_scraper import fetch_exportacao_data
-from app.services.auth_service import get_current_user, UserInDB
+from app.services.auth_service import get_current_user
+from app.models.user import User as UserModel
 
 router = APIRouter()
 
@@ -119,7 +120,7 @@ async def _get_exportacao_data_for_endpoint(ano: int, tipo_exportacao_path: str,
 )
 async def get_exportacao_vinhos_mesa(
     ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     return await _get_exportacao_data_for_endpoint(ano, "vinhos-mesa", current_user.username)
 
@@ -131,7 +132,7 @@ async def get_exportacao_vinhos_mesa(
 )
 async def get_exportacao_espumantes(
     ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     return await _get_exportacao_data_for_endpoint(ano, "espumantes", current_user.username)
 
@@ -143,7 +144,7 @@ async def get_exportacao_espumantes(
 )
 async def get_exportacao_uvas_frescas(
     ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     return await _get_exportacao_data_for_endpoint(ano, "uvas-frescas", current_user.username)
 
@@ -155,6 +156,6 @@ async def get_exportacao_uvas_frescas(
 )
 async def get_exportacao_suco_uva(
     ano: int = Query(..., ge=1970, le=2023, description="Ano para consulta (1970-2023)"),
-    current_user: UserInDB = Depends(get_current_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     return await _get_exportacao_data_for_endpoint(ano, "suco-uva", current_user.username)
