@@ -2,10 +2,11 @@ from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Optional
 from sqlalchemy.orm import Session
 from app.schemas.exportacao_schemas import ExportacaoResponse, ExportacaoItemData
-from app.services.embrapa_scraper import fetch_exportacao_data
 from app.services.auth_service import get_current_user
 from app.models.user import User as UserModel
+from app.models.exportacao_model import Exportacao as ExportacaoModel
 from app.db.session import get_db
+from app.crud import crud_exportacao
 
 router = APIRouter()
 
@@ -16,9 +17,8 @@ TIPO_EXPORTACAO_ENDPOINT_MAP = {
     "suco-uva": "suco_uva",
 }
 
-
 async def _get_exportacao_data_for_endpoint(
-    db: Session,
+    db: Session, 
     ano: int, 
     tipo_exportacao_path: str, 
     current_user_username: str
@@ -27,66 +27,49 @@ async def _get_exportacao_data_for_endpoint(
     if not tipo_exportacao_key:
         raise HTTPException(status_code=500, detail="Configuração interna inválida para tipo de exportação.")
 
-    print(f"ROUTER (Exportação): Usuário '{current_user_username}' acessando tipo '{tipo_exportacao_key}', ano: {ano}")
-    try:
+    print(f"ROUTER (Exportação DB): Usuário '{current_user_username}' solicitando tipo '{tipo_exportacao_key}', ano: {ano}")
+    
+    db_items: List[ExportacaoModel] = crud_exportacao.get_exportacao_by_year_and_type(
+        db=db, year=ano, tipo_exportacao=tipo_exportacao_key
+    )
+    print(f"ROUTER (Exportação DB): CRUD retornou {len(db_items)} itens do banco para '{tipo_exportacao_key}'.")
 
-        dados_api: List[ExportacaoItemData] = await fetch_exportacao_data(
-            db=db,
-            year=ano,
-            tipo_exportacao_key=tipo_exportacao_key
-        )
-        print(f"ROUTER (Exportação): Serviço scraper/DB retornou {len(dados_api)} itens processados para '{tipo_exportacao_key}'.")
-
-        if not dados_api:
-            return ExportacaoResponse(
-                ano_referencia=ano,
-                tipo_exportacao=tipo_exportacao_key,
-                dados=[],
-                total_geral_kg=0.0,
-                total_geral_usd=0.0
-            )
-
-        total_kg: float = 0.0
-        total_usd: float = 0.0
-        for item_data in dados_api:
-            if item_data.quantidade_kg is not None:
-                total_kg += item_data.quantidade_kg
-            if item_data.valor_usd is not None:
-                total_usd += item_data.valor_usd
-        
-        print(f"ROUTER (Exportação): Totais para '{tipo_exportacao_key}': KG={total_kg}, USD={total_usd}")
-
+    if not db_items:
+        print(f"ROUTER (Exportação DB): Nenhum dado encontrado no banco para ano {ano}, tipo '{tipo_exportacao_key}'.")
         return ExportacaoResponse(
             ano_referencia=ano,
             tipo_exportacao=tipo_exportacao_key,
-            dados=dados_api,
-            total_geral_kg=round(total_kg, 2),
-            total_geral_usd=round(total_usd, 2)
-        )
-    except Exception as e:
-        import traceback
-        print(f"ROUTER ERROR (Exportação): Erro inesperado para tipo '{tipo_exportacao_key}', ano {ano}: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro interno ao processar dados de exportação ({tipo_exportacao_key}). Detalhe: {str(e)}"
+            dados=[],
+            total_geral_kg=0.0,
+            total_geral_usd=0.0
         )
 
-@router.get("/vinhos-mesa/", response_model=ExportacaoResponse, summary="Exportação de Vinhos de Mesa (Requer Autenticação)", tags=["Exportação"])
-async def get_exportacao_vinhos_mesa(
-    ano: int = Query(..., ge=1970, le=2023, description="Ano (1970-2023)"),
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user)
-):
+    dados_api: List[ExportacaoItemData] = [ExportacaoItemData.model_validate(item) for item in db_items]
+        
+    total_kg: float = sum(item.quantidade_kg for item in dados_api if item.quantidade_kg is not None)
+    total_usd: float = sum(item.valor_usd for item in dados_api if item.valor_usd is not None)
+    print(f"ROUTER (Exportação DB): Totais para '{tipo_exportacao_key}': KG={total_kg}, USD={total_usd}")
+
+    return ExportacaoResponse(
+        ano_referencia=ano,
+        tipo_exportacao=tipo_exportacao_key,
+        dados=dados_api,
+        total_geral_kg=round(total_kg, 2),
+        total_geral_usd=round(total_usd, 2)
+    )
+
+@router.get("/vinhos-mesa/", response_model=ExportacaoResponse, summary="Exportação de Vinhos de Mesa (do DB, Requer Autenticação)", tags=["Exportação"])
+async def get_exportacao_vinhos_mesa(ano: int = Query(..., ge=1970, le=2023), db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
     return await _get_exportacao_data_for_endpoint(db, ano, "vinhos-mesa", current_user.username)
 
-@router.get("/espumantes/", response_model=ExportacaoResponse, summary="Exportação de Espumantes (Requer Autenticação)", tags=["Exportação"])
+@router.get("/espumantes/", response_model=ExportacaoResponse, summary="Exportação de Espumantes (do DB, Requer Autenticação)", tags=["Exportação"])
 async def get_exportacao_espumantes(ano: int = Query(..., ge=1970, le=2023), db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
     return await _get_exportacao_data_for_endpoint(db, ano, "espumantes", current_user.username)
 
-@router.get("/uvas-frescas/", response_model=ExportacaoResponse, summary="Exportação de Uvas Frescas (Requer Autenticação)", tags=["Exportação"])
+@router.get("/uvas-frescas/", response_model=ExportacaoResponse, summary="Exportação de Uvas Frescas (do DB, Requer Autenticação)", tags=["Exportação"])
 async def get_exportacao_uvas_frescas(ano: int = Query(..., ge=1970, le=2023), db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
     return await _get_exportacao_data_for_endpoint(db, ano, "uvas-frescas", current_user.username)
 
-@router.get("/suco-uva/", response_model=ExportacaoResponse, summary="Exportação de Suco de Uva (Requer Autenticação)", tags=["Exportação"])
+@router.get("/suco-uva/", response_model=ExportacaoResponse, summary="Exportação de Suco de Uva (do DB, Requer Autenticação)", tags=["Exportação"])
 async def get_exportacao_suco_uva(ano: int = Query(..., ge=1970, le=2023), db: Session = Depends(get_db), current_user: UserModel = Depends(get_current_user)):
     return await _get_exportacao_data_for_endpoint(db, ano, "suco-uva", current_user.username)

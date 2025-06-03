@@ -1,19 +1,21 @@
 from fastapi import APIRouter, Query, HTTPException, Depends
 from typing import List, Optional
 from sqlalchemy.orm import Session
+
 from app.schemas.comercializacao_schemas import ComercializacaoResponse, ComercializacaoItemData
-from app.services.embrapa_scraper import fetch_comercializacao_data
 from app.services.auth_service import get_current_user
 from app.models.user import User as UserModel
+from app.models.comercializacao_model import Comercializacao as ComercializacaoModel
 from app.db.session import get_db
+from app.crud import crud_comercializacao
 
 router = APIRouter()
 
 @router.get(
     "/",
     response_model=ComercializacaoResponse,
-    summary="Consulta dados de comercialização por ano (Requer Autenticação).",
-    description="Retorna uma lista de produtos e suas quantidades comercializadas em litros para um determinado ano. Os dados são buscados e salvos/atualizados no banco.",
+    summary="Consulta dados de comercialização por ano do banco de dados (Requer Autenticação).",
+    description="Retorna uma lista de produtos e suas quantidades comercializadas em litros para um determinado ano, consultando o banco de dados interno.",
     tags=["Comercialização"]
 )
 async def get_comercializacao_por_ano(
@@ -26,34 +28,26 @@ async def get_comercializacao_por_ano(
     db: Session = Depends(get_db),
     current_user: UserModel = Depends(get_current_user)
 ):
-    print(f"ROUTER (Comercialização): Usuário '{current_user.username}' acessando dados para o ano: {ano}")
-    try:
-        dados_api: List[ComercializacaoItemData] = await fetch_comercializacao_data(db=db, year=ano)
-        print(f"ROUTER: Serviço scraper/DB (Comercialização) retornou {len(dados_api)} itens processados.")
+    print(f"ROUTER (Comercialização DB): Usuário '{current_user.username}' solicitando dados para o ano: {ano}")
+    
+    db_items: List[ComercializacaoModel] = crud_comercializacao.get_comercializacao_by_year(db=db, year=ano)
+    print(f"ROUTER (Comercialização DB): CRUD retornou {len(db_items)} itens do banco de dados.")
 
-        if not dados_api:
-            return ComercializacaoResponse(
-                ano_referencia=ano,
-                dados=[],
-                total_geral_litros=0.0
-            )
-        
-        total_litros: float = 0.0
-        for item_data in dados_api:
-            if item_data.quantidade_litros is not None:
-                total_litros += item_data.quantidade_litros
-        
-        print(f"ROUTER: Total de litros (Comercialização) calculado: {total_litros}")
-
+    if not db_items:
+        print(f"ROUTER (Comercialização DB): Nenhum dado encontrado no banco para o ano {ano}.")
         return ComercializacaoResponse(
             ano_referencia=ano,
-            dados=dados_api,
-            total_geral_litros=round(total_litros, 2)
+            dados=[],
+            total_geral_litros=0.0
         )
-    except Exception as e:
-        import traceback
-        print(f"ROUTER ERROR (Comercialização): Ocorreu um erro inesperado: {str(e)}\n{traceback.format_exc()}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Erro interno ao processar os dados de comercialização. Detalhe: {str(e)}"
-        )
+
+    dados_api: List[ComercializacaoItemData] = [ComercializacaoItemData.model_validate(item) for item in db_items]
+    
+    total_litros: float = sum(item.quantidade_litros for item in dados_api if item.quantidade_litros is not None)
+    print(f"ROUTER (Comercialização DB): Total de litros calculado: {total_litros}")
+
+    return ComercializacaoResponse(
+        ano_referencia=ano,
+        dados=dados_api,
+        total_geral_litros=round(total_litros, 2)
+    )

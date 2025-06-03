@@ -1,8 +1,7 @@
 from sqlalchemy.orm import Session
-from typing import List
-
+from typing import List, Optional
 from app.models.processamento_model import Processamento as ProcessamentoModel
-from app.schemas.processamento_schemas import ProcessamentoItemData
+from app.schemas.processamento_schemas import ProcessamentoItemData 
 
 def create_or_replace_processamento_for_year_and_type(
     db: Session, 
@@ -14,6 +13,7 @@ def create_or_replace_processamento_for_year_and_type(
         ProcessamentoModel.ano == year,
         ProcessamentoModel.tipo_processamento == tipo_processamento
     ).delete(synchronize_session=False)
+    print(f"CRUD_PROCESSAMENTO: Registros antigos para o ano {year} e tipo '{tipo_processamento}' deletados.")
     
     db_processamento_list: List[ProcessamentoModel] = []
     for item_data in processamento_data_list:
@@ -29,4 +29,17 @@ def create_or_replace_processamento_for_year_and_type(
     if db_processamento_list:
         db.add_all(db_processamento_list)
     db.commit()
+    print(f"CRUD_PROCESSAMENTO: {len(db_processamento_list)} novos registros para o ano {year} e tipo '{tipo_processamento}' inseridos.")
     return db_processamento_list
+
+def get_processamento_by_year_and_type(
+    db: Session, 
+    year: int, 
+    tipo_processamento: str
+) -> List[ProcessamentoModel]:
+
+    print(f"CRUD_PROCESSAMENTO: Buscando dados para o ano {year} e tipo '{tipo_processamento}' no DB.")
+    return db.query(ProcessamentoModel).filter(
+        ProcessamentoModel.ano == year,
+        ProcessamentoModel.tipo_processamento == tipo_processamento
+    ).all()
