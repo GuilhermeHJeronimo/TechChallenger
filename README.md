@@ -11,7 +11,6 @@ Este projeto fornece acesso aos dados públicos da Embrapa Vitibrasil sobre prod
 ### Interface e Documentação
 A API possui uma página inicial e documentação interativa:
 * **Página Inicial:** [https://techchallenger.onrender.com](https://techchallenger.onrender.com)
-  ![Tela Inicial da API](docs/images/tela_inicial_api.png)
 * **Documentação (Swagger UI):** [https://techchallenger.onrender.com/docs](https://techchallenger.onrender.com/docs)
 * **Documentação (ReDoc):** [https://techchallenger.onrender.com/redoc](https://techchallenger.onrender.com/redoc)
 
@@ -76,4 +75,6 @@ Todos requerem `Authorization: Bearer <token>` e o parâmetro `ano`. Detalhes em
 
 ## 👤 Autor
 * **Guilherme H. Jeronimo**
+* **Matricula:RM364606**
 * **GitHub:** [GuilhermeHJeronimo](https://github.com/GuilhermeHJeronimo)
+* **Linkedin** [Guilherme Jeronimo](https://www.linkedin.com/in/guilherme-jeronimo-b111b226a/)
