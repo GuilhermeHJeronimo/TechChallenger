@@ -1,76 +1,122 @@
 from contextlib import asynccontextmanager
-from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.openapi.docs import get_swagger_ui_html, get_swagger_ui_oauth2_redirect_html
+import os
 from app.db.base import Base
 from app.db.session import engine
-from app.api.v1.routers import (
-    producao_router, processamento_router, comercializacao_router,
-    importacao_router, exportacao_router, auth_router
-)
 
-# Caminhos resolvidos
-BASE_DIR = Path(__file__).resolve().parent.parent
-TEMPLATES_DIR = BASE_DIR / "templates"
-STATIC_DIR = BASE_DIR / "static"
+from app.api.v1.routers import producao_router
+from app.api.v1.routers import processamento_router
+from app.api.v1.routers import comercializacao_router
+from app.api.v1.routers import importacao_router
+from app.api.v1.routers import exportacao_router
+from app.api.v1.routers import auth_router
 
-# Inicialização do banco
+PROJECT_ROOT_IN_CONTAINER = "/app"
+TEMPLATES_DIR = os.path.join(PROJECT_ROOT_IN_CONTAINER, "templates")
+STATIC_DIR = os.path.join(PROJECT_ROOT_IN_CONTAINER, "static")
+
 def create_db_and_tables():
-    print("MAIN: Criando tabelas do banco de dados (se não existirem)...")
+    print("MAIN.PY: Verificando e criando tabelas do banco de dados (se não existirem)...")
     Base.metadata.create_all(bind=engine)
-    print("MAIN: Tabelas do banco de dados verificadas/criadas.")
+    print("MAIN.PY: Tabelas do banco de dados prontas.")
 
 @asynccontextmanager
-async def lifespan(app_instance: FastAPI):
-    print("MAIN: Iniciando aplicação...")
-    create_db_and_tables()
-    yield
-    print("MAIN: Finalizando aplicação...")
+async def lifespan(app_instance: FastAPI): 
+    print("MAIN.PY: Evento de inicialização (lifespan) - Início.")
 
+
+    print(f"MAIN.PY DEBUG: Caminho esperado para TEMPLATES_DIR: {TEMPLATES_DIR}")
+    if not os.path.isdir(TEMPLATES_DIR):
+        print(f"MAIN.PY ERROR CRÍTICO: Diretório de templates NÃO ENCONTRADO em: {TEMPLATES_DIR}")
+    else:
+        print(f"MAIN.PY INFO: Diretório de templates ENCONTRADO em: {TEMPLATES_DIR}")
+
+    print(f"MAIN.PY DEBUG: Caminho esperado para STATIC_DIR: {STATIC_DIR}")
+    if not os.path.isdir(STATIC_DIR):
+        print(f"MAIN.PY ERROR CRÍTICO: Diretório de estáticos NÃO ENCONTRADO em: {STATIC_DIR}")
+    else:
+        print(f"MAIN.PY INFO: Diretório de estáticos ENCONTRADO em: {STATIC_DIR}")
+
+    create_db_and_tables() # Cria as tabelas do banco de dados
+    yield
+    print("MAIN.PY: Evento de finalização (lifespan) - Fim.")
+
+
+description = """
+API para consulta de dados de Vitivinicultura da Embrapa. 🍇
+
+**Funcionalidades:**
+
+  * Consulta de dados de Produção, Processamento, Comercialização, Importação e Exportação.
+  * Registro de usuários e autenticação via token JWT.
+  * Página inicial interativa.
+
+Acesse a documentação completa em `/docs` ou `/redoc`.
+Para obter um token, registre-se em `/api/v1/auth/register` e faça login em `/api/v1/auth/token`.
+"""
 app = FastAPI(
     title="Vitibrasil Embrapa API",
-    description="API para dados de vitivinicultura 🍇",
+    description=description,
     version="0.1.0",
-    lifespan=lifespan,
-    docs_url=None,
-    redoc_url=None 
+    contact={
+        "name": "Guilherme H. Jeronimo",
+        "url": "https://github.com/GuilhermeHJeronimo/TechChallenger",
+    },
+    openapi_tags=[
+        {"name": "Página Inicial", "description": "Página de boas-vindas da API."},
+        {"name": "Autenticação", "description": "Operações de autenticação e registro."},
+        {"name": "Produção", "description": "Dados de produção vitivinícola."},
+        {"name": "Processamento", "description": "Dados de processamento de uvas."},
+        {"name": "Comercialização", "description": "Dados de comercialização."},
+        {"name": "Importação", "description": "Dados de importação de produtos vitivinícolas."},
+        {"name": "Exportação", "description": "Dados de exportação de produtos vitivinícolas."},
+        {"name": "Saúde", "description": "Verificação de status da API."}
+    ],
+    lifespan=lifespan
 )
 
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
-templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+    print(f"MAIN.PY INFO: Arquivos estáticos montados de '{STATIC_DIR}' em '/static'.")
+else:
+    print(f"MAIN.PY ALERTA: Diretório estático '{STATIC_DIR}' não existe. Arquivos estáticos não serão servidos. Verifique seu Dockerfile e a estrutura do projeto.")
 
+templates = None
+if os.path.isdir(TEMPLATES_DIR):
+    templates = Jinja2Templates(directory=TEMPLATES_DIR)
+    print(f"MAIN.PY INFO: Templates Jinja2 configurados para o diretório '{TEMPLATES_DIR}'.")
+else:
+    print(f"MAIN.PY ALERTA: Diretório de templates '{TEMPLATES_DIR}' não existe. A página inicial não será servida corretamente.")
+
+
+origins = [
+    "http://localhost",
+    "http://localhost:8000",
+    "http://127.0.0.1",
+    "http://127.0.0.1:8000",
+    "https://techchallenger.onrender.com",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Página principal
-@app.get("/", response_class=HTMLResponse)
-async def homepage(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+@app.get("/", response_class=HTMLResponse, tags=["Página Inicial"], include_in_schema=False)
+async def read_root(request: Request):
+    if templates:
+        return templates.TemplateResponse("index.html", {"request": request})
+    else:
+        return HTMLResponse("<html><body><h1>Erro: Página inicial não pôde ser carregada (diretório de templates ausente).</h1></body></html>", status_code=500)
 
-# Swagger UI customizado
-@app.get("/docs", include_in_schema=False)
-async def custom_swagger_ui_html():
-    return get_swagger_ui_html(
-        openapi_url=app.openapi_url,
-        title="Vitibrasil Embrapa API Docs",
-        swagger_js_url="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js",
-        swagger_css_url="/static/css/swagger-ui.css"
-    )
+# --- Incluir os Routers da API ---
 
-@app.get("/docs/oauth2-redirect", include_in_schema=False)
-async def swagger_ui_redirect():
-    return get_swagger_ui_oauth2_redirect_html()
-
-# Rotas da API
 API_PREFIX = "/api/v1"
 app.include_router(auth_router.router, prefix=f"{API_PREFIX}/auth", tags=["Autenticação"])
 app.include_router(producao_router.router, prefix=f"{API_PREFIX}/producao", tags=["Produção"])
@@ -79,7 +125,6 @@ app.include_router(comercializacao_router.router, prefix=f"{API_PREFIX}/comercia
 app.include_router(importacao_router.router, prefix=f"{API_PREFIX}/importacao", tags=["Importação"])
 app.include_router(exportacao_router.router, prefix=f"{API_PREFIX}/exportacao", tags=["Exportação"])
 
-# Rota de saúde
-@app.get("/health", tags=["Saúde"])
-async def health():
-    return {"status": "ok"}
+@app.get("/health", tags=["Saúde"], include_in_schema=True)
+async def health_check():
+    return {"status": "API online e operacional!"}
