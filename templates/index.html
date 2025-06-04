@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vitibrasil Embrapa API</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+</head>
+<body class="page-body">
+  <header class="hero-section">
+    <div class="container hero-content">
+      <h1 class="hero-title">API de Dados da Vitivinicultura Embrapa</h1>
+      <p class="hero-subtitle">Acesse e explore dados detalhados sobre o setor vitivinícola no Brasil.</p>
+      <div class="hero-buttons">
+        <a href="/docs" class="btn btn-primary-solid">Documentação API (Swagger)</a>
+        <a href="/redoc" class="btn btn-secondary-outline">Documentação API (ReDoc)</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container main-content">
+    <section class="section text-center">
+      <h2 class="section-title">Como Começar</h2>
+      <p class="section-paragraph">Para acessar os dados protegidos da API, registre sua conta e obtenha seu token.</p>
+    </section>
+
+    <section class="grid action-cards-container">
+      <div class="card action-card">
+        <div class="card-icon-wrapper icon-bg-register">
+          <img src="/static/img/register.svg" class="card-icon" alt="registro">
+        </div>
+        <h3 class="card-title">1. Registre sua Conta</h3>
+        <p class="card-description">Crie uma conta de usuário para obter acesso à API.</p>
+        <a href="/docs#/Autenticação/register_new_user_api_v1_auth_register_post" target="_blank" class="btn btn-action btn-register">Registrar Agora</a>
+      </div>
+
+      <div class="card action-card">
+        <div class="card-icon-wrapper icon-bg-login">
+          <img src="/static/img/login.svg" class="card-icon" alt="login">
+        </div>
+        <h3 class="card-title">2. Faça Login</h3>
+        <p class="card-description">Use suas credenciais para fazer login e obter seu token JWT.</p>
+        <a href="/docs#/Autenticação/login_for_access_token_api_v1_auth_token_post" target="_blank" class="btn btn-action btn-login">Fazer Login</a>
+      </div>
+    </section>
+
+    <section class="section text-center explore-section">
+      <h2 class="section-title">Explore os Dados</h2>
+      <p class="section-paragraph">Com seu token, você pode acessar todos os endpoints. Confira a documentação.</p>
+      <a href="/docs" class="btn btn-primary-solid">Ir para Documentação da API</a>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container">
+      <p>&copy; <span id="currentYear"></span> API de Dados da Vitivinicultura Embrapa.</p>
+      <p>Desenvolvido por Guilherme H. Jeronimo.</p>
+      <p><a href="https://github.com/GuilhermeHJeronimo/TechChallenger" target="_blank" class="footer-link">Ver Projeto no GitHub</a></p>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById("currentYear").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>

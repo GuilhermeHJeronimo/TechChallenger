@@ -1,5 +1,19 @@
 from decouple import config
 from typing import List
+import os
+from dotenv import load_dotenv
+from pathlib import Path
+import os
+
+
+env_path = Path(__file__).resolve().parents[2] / ".env"
+load_dotenv(dotenv_path=env_path)
+
+print("DEBUG - ENV FILE LOADED")
+print("DEBUG - RAW ENV DATABASE_URL:", os.getenv("DATABASE_URL"))
+
+
+
 
 PROJECT_NAME: str = config("PROJECT_NAME", default="Vitibrasil Embrapa API")
 API_VERSION: str = config("API_VERSION", default="0.1.0")
